@@ -1,3 +1,4 @@
+# Flask
 from flask import Flask
 from flask import render_template
 from flask import request
@@ -6,7 +7,6 @@ from flask import url_for
 from flask import session
 from flask import g
 from flask import flash
-import flask_bootstrap
 
 # Form
 from flask_wtf import FlaskForm
@@ -16,8 +16,9 @@ from wtforms import TextAreaField
 from wtforms.validators import InputRequired
 
 # Database
-from mdblog.models import db
-from mdblog.models import Article
+from .models import db
+from .models import Article
+from .models import User
 
 import os
 from flask_bootstrap import Bootstrap
@@ -34,28 +35,36 @@ if "MDBLOG_CONFIG" in os.environ:
 
 db.init_app(flask_app)
 
+# ERROR HANDELING
+@flask_app.errorhandler(500)
+def internal_server_error(error):
+    return render_template("500.jinja"), 500
+
+@flask_app.errorhandler(404)
+def internal_server_error(error):
+    return render_template("404.jinja"), 404
 
 ## FORMS
 class LoginForm(FlaskForm):
     username = StringField("Username", validators=[InputRequired()])
     password = PasswordField("Password", validators=[InputRequired()])
 
-
 class ArticleForm(FlaskForm):
     title = StringField("Title", validators=[InputRequired()])
     content = TextAreaField("Content")
 
+class ChangePasswordForm(FlaskForm):
+    old_password = PasswordField("Old Password", validators=[InputRequired()])
+    new_password = PasswordField("New Password", validators=[InputRequired()])
 
 ## CONTROLLERS
 @flask_app.route("/")
 def view_welcome_page():
     return render_template("welcome_page.jinja")
 
-
 @flask_app.route("/about/")
 def view_about():
     return render_template("about.jinja")
-
 
 @flask_app.route("/admin/")
 def view_admin():
@@ -64,12 +73,14 @@ def view_admin():
         return redirect(url_for("view_login"))
     return render_template("admin.jinja")
 
-
 ### ARTICLES
 @flask_app.route("/articles/", methods=["GET"])
 def view_articles():
-    articles = Article.query.order_by(Article.id.desc())
-    return render_template("articles.jinja", articles=articles)
+    page = request.args.get("page", 1, type=int)
+    paginate = Article.query.order_by(Article.id.desc()).paginate(page, 5, False)
+    return render_template("articles.jinja",
+            articles=paginate.items,
+            paginate=paginate)
 
 
 @flask_app.route("/articles/new/", methods=["GET"])
@@ -80,7 +91,6 @@ def view_add_article():
     form = ArticleForm()
     return render_template("article_editor.jinja", form=form)
 
-
 @flask_app.route("/articles/", methods=["POST"])
 def add_article():
     if "logged" not in session:
@@ -88,18 +98,17 @@ def add_article():
 
     add_form = ArticleForm(request.form)
     if add_form.validate():
-        new_arctile = Article(
-            title=add_form.title.data,
-            content=add_form.content.data)
-        db.session.add(new_arctile)
+        new_article = Article(
+                title = add_form.title.data,
+                content = add_form.content.data)
+        db.session.add(new_article)
         db.session.commit()
         flash("Article was saved", "alert-success")
         return redirect(url_for("view_articles"))
     else:
         for error in add_form.errors:
             flash("{} is required".format(error), "alert-danger")
-        return redirect(url_for("article_editor.jinja"))
-
+        return render_template("article_editor.jinja", form=add_form)
 
 @flask_app.route("/articles/<int:art_id>/")
 def view_article(art_id):
@@ -107,7 +116,6 @@ def view_article(art_id):
     if article:
         return render_template("article.jinja", article=article)
     return render_template("article_not_found.jinja", art_id=art_id)
-
 
 @flask_app.route("/articles/<int:art_id>/edit/", methods=["GET"])
 def view_article_editor(art_id):
@@ -123,7 +131,7 @@ def view_article_editor(art_id):
 
 
 @flask_app.route("/articles/<int:art_id>/", methods=["POST"])
-def edit_article(art_id, login_form=None):
+def edit_article(art_id):
     if "logged" not in session:
         return redirect(url_for("view_login"))
     article = Article.query.filter_by(id=art_id).first()
@@ -141,20 +149,18 @@ def edit_article(art_id, login_form=None):
                 flash("{} is missing".format(error), "alert-danger")
             return redirect(url_for("view_login"))
 
-
 @flask_app.route("/login/", methods=["GET"])
 def view_login():
     login_form = LoginForm()
     return render_template("login.jinja", form=login_form)
 
-
 @flask_app.route("/login/", methods=["POST"])
 def login_user():
     login_form = LoginForm(request.form)
     if login_form.validate():
-        if login_form.username.data == flask_app.config["USERNAME"] and \
-                login_form.password.data == flask_app.config["PASSWORD"]:
-            session["logged"] = True
+        user = User.query.filter_by(username = login_form.username.data).first()
+        if user and user.check_password(login_form.password.data):
+            session["logged"] = user.username
             flash("Login successful", "alert-success")
             return redirect(url_for("view_admin"))
         else:
@@ -165,6 +171,33 @@ def login_user():
             flash("{} is missing".format(error), "alert-danger")
         return redirect(url_for("view_login"))
 
+@flask_app.route("/changepassword/", methods=["GET"])
+def view_change_password():
+    if "logged" not in session:
+        return redirect(url_for("view_login"))
+    form = ChangePasswordForm()
+    return render_template("change_password.jinja", form=form)
+
+@flask_app.route("/changepassword/", methods=["POST"])
+def change_password():
+    if "logged" not in session:
+        return redirect(url_for("view_login"))
+    form = ChangePasswordForm(request.form)
+    if form.validate():
+        user = User.query.filter_by(username = session["logged"]).first()
+        if user and user.check_password(form.old_password.data):
+            user.set_password(form.new_password.data)
+            db.session.add(user)
+            db.session.commit()
+            flash("Password changed!", "alert-success")
+            return redirect(url_for("view_admin"))
+        else:
+            flash("Invalid credentials", "alert-danger")
+            return render_template("change_password.jinja", form=form)
+    else:
+        for error in form.errors:
+            flash("{} is missing".format(error), "alert-danger")
+        return render_template("change_password.jinja", form=form)
 
 @flask_app.route("/logout/", methods=["POST"])
 def logout_user():
@@ -177,4 +210,11 @@ def logout_user():
 def init_db(app):
     with app.app_context():
         db.create_all()
-        print("database initialized")
+        print("database inicialized")
+
+        default_user = User(username="admin")
+        default_user.set_password("admin")
+
+        db.session.add(default_user)
+        db.session.commit()
+        print("default user was created")

@@ -5,10 +5,12 @@
 
 {% block main %}
     {% if "logged" in session %}
+    <div class= "text-center">
         <a href="{{ url_for("view_add_article") }}">add new article</a>
+    </div>
     {% endif %}
     {% if articles %}
-        <ul class= "text-left">
+        <ul>
         {% for article in articles %}
             <li>
                 <h2><a href="{{ url_for("view_article", art_id=article.id) }}"> {{ article.title }} </a></h2>
@@ -16,7 +18,36 @@
             </li>
         {% endfor %}
         </ul>
+
+        <ul class="text-primary list-inline mx-auto justify-content-center text-center" style="list-style: none;">
+        
+        {% if paginate.has_prev %}
+            <li>
+                <a href={{url_for("view_articles", page=paginate.prev_num)}}> prev</a>
+            </li>
+        {% endif %}
+
+        {%- for page in paginate.iter_pages() %}
+            {% if page %}
+                {% if page != paginate.page %}
+                    <li> <a href={{ url_for("view_articles", page=page) }}> {{page }} </a></li>
+                {% else %}
+                    <li> {{page}} </li>
+                {% endif %}
+            {% else %}
+                <li> ... </li>
+            {% endif %}
+        {%- endfor %}
+
+        {% if paginate.has_next %}
+            <li>
+                <a href={{url_for("view_articles", page=paginate.next_num)}}> next</a>
+            </li>
+        {% endif %}
+
+        </ul>
+
     {% else %}
-        <p> No Articles :( </p>
+        <p class= "text-center"> No Articles :( </p>
     {% endif %}
 {% endblock %}
