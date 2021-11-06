@@ -13,6 +13,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField
 from wtforms import PasswordField
 from wtforms import TextAreaField
+from wtforms import HiddenField
 from wtforms.validators import InputRequired
 
 # Database
@@ -52,6 +53,7 @@ class LoginForm(FlaskForm):
 class ArticleForm(FlaskForm):
     title = StringField("Title", validators=[InputRequired()])
     content = TextAreaField("Content")
+    html_render = HiddenField()
 
 class ChangePasswordForm(FlaskForm):
     old_password = PasswordField("Old Password", validators=[InputRequired()])
@@ -100,7 +102,8 @@ def add_article():
     if add_form.validate():
         new_article = Article(
                 title = add_form.title.data,
-                content = add_form.content.data)
+                content = add_form.content.data,
+                html_render = add_form.html_render.data)
         db.session.add(new_article)
         db.session.commit()
         flash("Article was saved", "alert-success")

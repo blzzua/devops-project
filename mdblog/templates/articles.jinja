@@ -14,12 +14,12 @@
         {% for article in articles %}
             <li>
                 <h2><a href="{{ url_for("view_article", art_id=article.id) }}"> {{ article.title }} </a></h2>
-                <p> {{ article.content | truncate(100) }} </p>
+                <p> {{ article.html_render}} </p>
             </li>
         {% endfor %}
         </ul>
 
-        <ul class="text-primary list-inline mx-auto justify-content-center text-center" style="list-style: none;">
+        <ul class="text-primary list-inline mx-auto justify-content-center text-center">
         
         {% if paginate.has_prev %}
             <li>

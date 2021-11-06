@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
     <title> {% block title %} {% endblock %} </title>
-    {% include "_head.jinja" %}
+    {% block head%}
+        {% include "_head.jinja" %}
+    {% endblock %}
 
 
 </head>

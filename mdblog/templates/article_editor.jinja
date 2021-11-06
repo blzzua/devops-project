@@ -1,7 +1,13 @@
 {% extends "_main.jinja" %}
 
-
+{# Markdown #}
 {% block title %} New Article {% endblock %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href={{url_for("static", filename="css/simplemde.min.css")}}>
+    <script src={{url_for("static", filename="js/simplemde.min.js")}}></script>
+    <script src={{url_for("static", filename="js/editor.js")}}></script>
+{% endblock %}
 
 {% block main %}
 
@@ -11,7 +17,7 @@
 <form action="{{ url_for("add_article") }}" method="post">
 {% endif %}
     {{ form.csrf_token }}
-    <p class="form-group">
+    <p>
         {{ form.title.label }}
         {{ form.title() }}
     </p>
@@ -19,7 +25,7 @@
         {{ form.content.label }}
         {{ form.content() }}
     </p>
-    
+    {{ form.html_render() }}
     <input class="btn btn-success" type="submit" value="save">
 
 </form>
