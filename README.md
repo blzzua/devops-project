@@ -1,1 +1,1 @@
-# Very simple blog, made with flask
+# Very simple blog with basic database.
