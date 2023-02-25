@@ -22,11 +22,5 @@ jobs:
         
     - name: Analysing the code with pylint
       run: |
-        pylint run.py || exit 0
-        if [[ $? == 1 || $? == 2 || $? == 3 || $? == 32 || $? == 33 || $? == 34 || $? == 35 ]];
-        then
-            exit 1
-        else
-            exit 0
-        fi
+        pylint --disable=C run.py
         
