@@ -1,13 +1,14 @@
 from mdblog.app import flask_app
 from mdblog.app import init_db
 
+import os
 import sys
 
 
 def start():
     debug = True
     host = "0.0.0.0"
-    flask_app.run(host, debug=debug)
+    flask_app.run(host, debug=debug, port=int(os.environ.get("PORT", 8080)))
 
 
 def init():
