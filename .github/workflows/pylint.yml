@@ -22,8 +22,8 @@ jobs:
         
     - name: Analysing the code with pylint
       run: |
-        pylint run.py
-        if [[ (($? & (1+2+32) )) -ne 0 ]]
+        pylint run.py || \
+        if [[ (($? & (1+2+32) )) -ne 0 ]] 
         then
             exit 1
         else
