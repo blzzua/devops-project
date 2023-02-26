@@ -12,5 +12,5 @@ COPY . ./
 
 # Install production dependencies.
 RUN pip install --no-cache-dir -r requirements.txt
-
-CMD exec python run.py start
+#CMD exec python run.py start
+CMD exec gunicorn -b :${PORT:-8080}  --workers 1 --threads 2 --timeout=0 'run:flask_app'
